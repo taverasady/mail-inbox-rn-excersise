@@ -1,64 +1,72 @@
-# MailInbox — React Native take-home starter
+# MailInbox
 
-This is the starter project for the **Mail-Style Inbox with Swipe Actions** exercise.
-Read the exercise PDF first; this README only covers the code.
+A React Native inbox that behaves like iOS Mail: paged list, swipe actions, optimistic updates, and a message screen that returns to the same scroll offset.
 
-## What is already here
+Built on the take-home starter. React Native stays at **0.83.10**. Platform for this solution: **iOS** (Xcode Simulator, iPhone 16e). Decisions, dependency choices, and the AI disclosure live in [`MOBILE_NOTES.md`](MOBILE_NOTES.md).
 
-| Path | Status | Notes |
-|---|---|---|
-| `src/types/email.ts` | Done | `Email` and `InboxPage` types. Do not change. |
-| `src/api/data.ts` | Done | Deterministic generator for 10,000 messages. Do not change. |
-| `src/api/api.ts` | Done | Mock API: `fetchInbox`, `fetchEmail`, `archive`, `trash`, `setRead`, `restore`. Simulated latency and failures. Do not change. |
-| `src/screens/InboxScreen.tsx` | Stub | Your main work. |
-| `src/screens/MessageScreen.tsx` | Stub | Message detail. Redefine its props to suit your navigation. |
-| `src/components/EmailRow.tsx` | Stub | Row layout + swipe actions. |
-| `App.tsx` | Minimal | Renders `InboxScreen`. No navigation yet. |
-| `__tests__/` | Done | Sanity tests for the mock API. Keep them green. |
+## What it does
 
-The project has **no third-party runtime dependencies**. Choosing and justifying them is part of the exercise.
+- **Inbox** — 25 messages per page, pull-to-refresh, fetch the next page when you are about two screens from the end.
+- **Rows** — unread dot, initials avatar, sender, relative time, subject, body preview (clipped from the real message, not the mock's unrelated `preview` field).
+- **Swipe left** — Archive (grey) and Trash (red). Release before ~60% of the row width leaves the buttons open; past 60% commits Trash.
+- **Swipe right** — Read / Unread (blue). Full swipe commits the toggle. Only one row open at a time.
+- **Message** — sender, email, subject, date, full body. Opening a message marks it read; the inbox row updates to match. Mark as Unread sticks until you open the message again.
+- **Failures** — a failed page load shows **Retry** in the list footer and keeps already-loaded rows. A failed archive / trash / read / undo shows a bottom toast with **Retry**.
+- **Undo** — after a successful archive or trash, a 4-second toast restores the row via `restore(id)`.
 
-## Rules
+Long-press a row (or use VoiceOver actions) for Archive / Trash / Read without a swipe.
 
-- **Do not change the React Native version.** It is pinned in `package.json` (0.83.10). Add dependencies against that version; do not upgrade or downgrade the project.
-- **Do not modify** `src/types/`, `src/api/`, or the existing tests. Everything else is yours.
-- For **every package you add**, write one line in `MOBILE_NOTES.md`: the package, what you use it for, and why that package over the alternatives.
-- Pick **one platform** (iOS or Android). You do not need to run both.
+## Run (iOS)
 
-## Getting started
+Needs Node 20+, Xcode, CocoaPods, and the iOS Simulator.
 
 ```bash
 npm install
-
-# iOS (macOS only)
 cd ios && bundle install && bundle exec pod install && cd ..
-npm run ios
 
-# Android
-npm run android
+# Terminal 1 — leave Metro running
+npx react-native start
+
+# Terminal 2
+npm run ios -- --simulator="iPhone 16e"
+```
+
+Use `MailInbox.xcworkspace`, not the `.xcodeproj`. After the first install, if the app is already on the simulator and Metro is running, **⌘R** reloads JS changes.
+
+If you change Babel plugins (Reanimated) or the cache looks stale:
+
+```bash
+npx react-native start --reset-cache
 ```
 
 Useful scripts: `npm run typecheck`, `npm test`, `npm run lint`.
 
-### Run notes (beyond the commands above)
+## Layout
 
-- Target platform for this solution: **iOS**. Preferred compact simulator: `iPhone 16e` (or `iPhone SE (3rd generation)` if that runtime is installed).
-  ```bash
-  npm run ios -- --simulator="iPhone 16e"
-  ```
-- First iOS build needs CocoaPods (`bundle exec pod install` under `ios/`). Use `MailInbox.xcworkspace`, not the `.xcodeproj`.
-- If Metro is already running on another port, stop it or pass `--port` / restart with `npx react-native start --reset-cache` after changing Babel plugins (Reanimated).
+| Path | What it is |
+|---|---|
+| `src/screens/InboxScreen.tsx` | Paged `FlatList`, pull-to-refresh, footer Retry |
+| `src/screens/MessageScreen.tsx` | Message detail; marks read once on open |
+| `src/components/EmailRow.tsx` | Row layout + UI-thread swipe |
+| `src/inbox/useInbox.ts` | Pages, optimistic archive/trash/read, undo, error retry |
+| `src/inbox/InboxContext.tsx` | Shared inbox state above the navigator |
+| `src/theme/colors.ts` | Palette; WCAG AA pairs asserted in `__tests__/contrast.test.ts` |
+| `src/types/`, `src/api/` | Starter mock API — **not modified** |
 
-## Mock API behaviour
+## Mock API (unchanged)
 
-- `fetchInbox(page)` → 25 messages per page, newest first, 400–900 ms latency, ~10% of calls reject with `NetworkError`. `nextPage` is `null` after the last page.
-- `archive(id)`, `trash(id)`, `setRead(id, isRead)`, `restore(id)` → 300–600 ms latency, ~20% of calls reject with `NetworkError`.
-- Server-side state (read flags, removed ids) lives in memory for the lifetime of the app; refetching a page reflects earlier actions. Nothing persists across restarts.
+Nothing hits the network. All data comes from `src/api/`.
 
-Failures are random and frequent on purpose. Your UI must handle them.
+- `fetchInbox(page)` — 25 messages, newest first, 400–900 ms, ~10% `NetworkError`
+- `archive` / `trash` / `setRead` / `restore` — 300–600 ms, ~20% `NetworkError`
+- Read flags and removed ids live in memory for the lifetime of the app. Nothing persists across restarts.
 
-## What to send back
+Failures are random on purpose. Keep scrolling or toggling read until one hits.
 
-1. A **public GitHub repository URL** with your changes. Do not commit `node_modules`.
-2. `MOBILE_NOTES.md` filled in (template provided) and committed.
-3. Screenshots and a short screen recording as described in the exercise PDF — attach them to your reply or commit them under `submission/`.
+## Tests
+
+Starter API sanity tests plus helpers, body preview, and colour contrast:
+
+```bash
+npm test
+```
