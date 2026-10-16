@@ -1,0 +1,16 @@
+/* eslint-env jest */
+import 'react-native-gesture-handler/jestSetup';
+
+jest.mock('react-native-reanimated', () => {
+  const Reanimated = require('react-native-reanimated/mock');
+  Reanimated.default.call = () => {};
+  return Reanimated;
+});
+
+jest.mock('react-native-screens', () => {
+  const actual = jest.requireActual('react-native-screens');
+  return {
+    ...actual,
+    enableScreens: jest.fn(),
+  };
+});

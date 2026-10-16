@@ -40,6 +40,15 @@ npm run android
 
 Useful scripts: `npm run typecheck`, `npm test`, `npm run lint`.
 
+### Run notes (beyond the commands above)
+
+- Target platform for this solution: **iOS**. Preferred compact simulator: `iPhone 16e` (or `iPhone SE (3rd generation)` if that runtime is installed).
+  ```bash
+  npm run ios -- --simulator="iPhone 16e"
+  ```
+- First iOS build needs CocoaPods (`bundle exec pod install` under `ios/`). Use `MailInbox.xcworkspace`, not the `.xcodeproj`.
+- If Metro is already running on another port, stop it or pass `--port` / restart with `npx react-native start --reset-cache` after changing Babel plugins (Reanimated).
+
 ## Mock API behaviour
 
 - `fetchInbox(page)` → 25 messages per page, newest first, 400–900 ms latency, ~10% of calls reject with `NetworkError`. `nextPage` is `null` after the last page.
